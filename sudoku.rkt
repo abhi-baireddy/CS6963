@@ -1,6 +1,6 @@
 #lang racket
 (define M 3)
-(define N 2)
+(define N 3)
 
 ;;initialize all cells of M * N sudoku board to some random number
 (define (initialize-board M N n board column)
