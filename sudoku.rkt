@@ -2,7 +2,7 @@
 (define M 3)
 (define N 3)
 
-;;initialize all cells of M * N sudoku board to some random number
+;;initialize all cells of M * N sudoku board with 0s
 (define (initialize-board M N n board column)
   (cond
     ((= 0 M) board)
