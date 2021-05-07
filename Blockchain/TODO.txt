@@ -1,0 +1,15 @@
+TODO:
+[X] Create structures for block and blockchain
+[X] Functions to determine if a given block/blockchain is valid
+[X] Function to add a block to the blockchain
+[X] Function to mine a block
+[X] Create peers -- every peer has its own copy of the blockchain
+[X] Add support for transactions-- each peer starts with a certain amount of tokens;
+    a peer can choose to transfer some tokens to peers and record the transaction in the blockchain
+[X] Broadcasting-- a peer may modify (when it makes a transaction) the blockchain and when it does,
+    it needs to broadcast its copy to all of its peers -- network programming in Racket.
+[_] Consensus algorithm: a peer might receive more than one modified blockchain;
+    how does it decide which one to change its copy to?
+[X] A peer takes two commands: send and show.
+     - send transfers tokens to another peer-- something like "send <num tokens> <recepient peer ID>"
+     - show displays the peer's local copy of blockchain and a list of it's peer-- "show -peers" or "show -chain"
