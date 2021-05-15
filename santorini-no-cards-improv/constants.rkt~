@@ -1,0 +1,16 @@
+#lang racket
+
+(provide (all-defined-out))
+(define MAX_ROW 5)
+(define MAX_COL 5)
+(define FIRST 0 )
+(define SECOND 1)
+(define LEVEL-THREE 3)
+(define neighbor-vectors (list (list -1 0)
+                               (list -1 1)
+                               (list 0 1)
+                               (list 1 1)
+                               (list 1 0)
+                               (list 1 -1)
+                               (list 0 -1)
+                               (list -1 -1)))

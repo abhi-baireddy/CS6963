@@ -1,0 +1,147 @@
+#lang racket
+
+(require json)
+(require "constants.rkt")
+(provide (all-defined-out))
+
+;;random position for initial placement of tokens
+(define (random-pos existing-posns)
+  (local [(define posn (list (random 1 (add1 MAX_ROW)) (random 1 (add1 MAX_COL))))]
+    (cond [(false? (member posn existing-posns)) posn]
+          [else (random-pos existing-posns)])))
+
+
+;;get value at cell [r,c] in board
+(define (val-at in row-index col-index)
+  (list-ref (list-ref in (sub1 row-index)) (sub1 col-index)))
+
+
+
+
+;;get a player's tokens
+(define (player-tokens players player-number)
+  (list-ref players player-number))
+
+
+;;adds two vectors
+(define (add-vec posn-1 posn-2)
+  (list (+ (list-ref posn-1 FIRST) (list-ref posn-2 FIRST))
+        (+ (list-ref posn-1 SECOND) (list-ref posn-2 SECOND))))
+
+
+;;init-board -- initialize spaces to all zeroes, 
+(define (init-spaces)
+  (for/list ([i (in-range 0 MAX_ROW)])
+    (for/list ([j (in-range 0 MAX_COL)]) 
+      0)))
+;;check if a posn is inside the board
+(define (inside-board? posn)
+  (and (and (>= (list-ref posn 0) 1)
+            (>= (list-ref posn 1) 1))
+       (and (<= (list-ref posn 0) MAX_ROW)
+            (<= (list-ref posn 1) MAX_COL))))
+
+
+;;get level of posn in board
+(define (level-of posn in)
+  (val-at in (first posn) (second posn)))
+
+;;check if level of neighbor is at most 1 more than current position's level
+(define (level-ok? posn neighbor spaces)
+  (and (not (= 4 (level-of neighbor spaces))) 
+       (<= (- (level-of neighbor spaces) (level-of posn spaces)) 1)))
+
+
+;;check if the position is already occupied
+(define (not-occupied? posn player-posns)
+  (false? (member posn player-posns)))
+
+
+;;get neighbors of posn
+(define (get-neighbors player-posn)
+  (map (lambda (vec)
+         (add-vec vec player-posn))
+       neighbor-vectors))
+
+
+;;creates a hash out of players, spaces, and turn
+(define (make-board players spaces turn)
+  (hasheq 'players players 'spaces spaces 'turn turn))
+
+;;generate a random position 
+(define (setup players)
+  ;;players is either empty or a list of single list which is again a list of two positions
+  (let* ([other-player-posns (cond [(empty? players) players]
+                                   [else (first players)])]
+         [first-pos (random-pos other-player-posns)]
+         [second-pos (random-pos (append other-player-posns (list first-pos)))]
+         [new-pos (list first-pos second-pos)])
+
+    (write-json(append players (list new-pos)))
+    (flush-output)))
+
+
+;;move-step -- takes in current payers tokens and board state and returns next state
+;;next state has different player-tokens list corresponding to the new positions of the current player but spaces will look same
+(define (move-step players spaces turn)
+  ;;first player in the players array is the current player
+  (letrec ([first-player-tokens (player-tokens players FIRST)]
+           [picked-token (random 0 2)]
+           [picked-token-neighbors (valid-neighbors
+                                    (player-tokens first-player-tokens picked-token)
+                                    (append (player-tokens players FIRST)
+                                            (player-tokens players SECOND))
+                                    spaces)]
+           [new-position-of-picked-token (pick-move-position picked-token-neighbors spaces)]
+           ;;[new-position-of-picked-token (list-ref picked-token-neighbors
+                                                   ;;(random 0 (length picked-token-neighbors)))]
+           [new-player-tokens (list new-position-of-picked-token
+                                       (list-ref first-player-tokens
+                                                 (modulo (add1 picked-token)
+                                                         (length first-player-tokens))))]
+           [updated-players (list (player-tokens players SECOND) new-player-tokens)]) 
+    ;;(build-step updated-players new-position-of-picked-token spaces turn)
+    (cond [(= (val-at spaces
+                      (first new-position-of-picked-token)
+                      (second new-position-of-picked-token))
+              LEVEL-THREE) (write-json (make-board updated-players spaces (add1 turn)))]
+          [else (build-step updated-players new-position-of-picked-token spaces turn)])))
+
+
+;;build-step takes new player positions and picked player, and randomly selects a valid neighbor and build there
+;;buiding simply increments the level of the selected postion
+(define (build-step updated-players new-position-of-picked-token spaces turn)
+  (letrec ([picked-token-neighbors (valid-neighbors new-position-of-picked-token
+                                                    (append (player-tokens updated-players FIRST)
+                                                            (player-tokens updated-players SECOND))
+                                                    spaces)]
+           [build-at (list-ref picked-token-neighbors (random 0 (length picked-token-neighbors)))] 
+           [new-spaces  (for/list ([i (in-range 0 MAX_ROW)])
+                          (for/list ([j (in-range 0 MAX_COL)])
+                            (if (and (= i (sub1 (first build-at)))
+                                     (= j (sub1 (second build-at))))
+                                (add1 (val-at spaces (add1 i) (add1 j)))
+                                (val-at spaces (add1 i) (add1 j)))))])
+    (write-json (make-board updated-players new-spaces (add1 turn)))
+    (flush-output)))
+
+
+;;valid-neighbors filters list of neighbors and returns a list of possible positions for the token to move to
+(define (valid-neighbors token players-tokens spaces)
+  (filter (lambda (neighbor)
+            (and (not-occupied? neighbor players-tokens)
+                 (level-ok? token neighbor spaces)))
+          (filter inside-board?
+                  (get-neighbors token))))
+
+
+;;pick a position to move -- takes a list of valid neighbors and sees if there is a neighbor with a level three tower
+;;if yes, moves to that position and wins
+(define (pick-move-position neighbors spaces)
+  (let* ([levels (map (lambda (neighbor)
+                       (val-at spaces (first neighbor)
+                               (second neighbor)))
+                     neighbors)]
+        [picked-pos-index (index-of levels LEVEL-THREE)])
+    (cond [(false? picked-pos-index) (list-ref neighbors (random 0 (length neighbors)))]
+          [else (list-ref neighbors picked-pos-index)])))
