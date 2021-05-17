@@ -16,7 +16,7 @@
   ;; if current player has a build card then handle build card cases
   ;; otherwise proceed as in no cards version
   (define current-player-card (first cards))
-  (if (list? (member build-cards current-player-card))
+  (if (list? (member current-player-card build-cards))
       (build-with-cards moved-token cards players spaces turn)
       (build-without-cards moved-token cards players spaces turn)))
 
