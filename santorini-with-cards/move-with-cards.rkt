@@ -47,7 +47,7 @@
                                                    spaces
                                                    turn)]
         
-        [else (if (list? (member move-cards current-player-card))
+        [else (if (list? (member current-player-card move-cards))
                   (move-with-cards cards players spaces turn)
                   (move-without-cards cards players spaces turn))]))
 
